@@ -1,0 +1,6 @@
+requests
+python-dotenv
+pyupbit
+pandas
+matplotlib
+git+https://github.com/twopirllc/pandas-ta
