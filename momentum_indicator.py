@@ -1,6 +1,37 @@
 import pandas_ta as ta
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 
+
+def hlc3(high, low, close):
+    """HLC3 계산 함수 (Typical Price)"""
+    return (high + low + close) / 3
+
+def calculate_vwap(df, period_days=100):
+    """
+    100일 단위로 VWAP을 초기화하며 계산하는 함수
+    :param df: 데이터프레임 (open, high, low, close, volume 포함)
+    :param period_days: VWAP을 초기화할 주기 (기본값: 100일)
+    :return: VWAP이 추가된 데이터프레임
+    """
+    df['HLC3'] = hlc3(df['high'], df['low'], df['close'])  # HLC3(Typical Price) 계산
+    df['VWAP_100'] = np.nan  # 초기 VWAP 값
+    
+    cumulative_vwap = 0
+    cumulative_volume = 0
+    
+    for i in range(len(df)):
+        if i % period_days == 0:  # 100일마다 초기화
+            cumulative_vwap = 0
+            cumulative_volume = 0
+        
+        cumulative_vwap += df.loc[df.index[i], 'HLC3'] * df.loc[df.index[i], 'volume']
+        cumulative_volume += df.loc[df.index[i], 'volume']
+        
+        df.loc[df.index[i], 'VWAP_100'] = cumulative_vwap / cumulative_volume if cumulative_volume != 0 else np.nan
+    
+    return df
 
 #4시간봉 사용용
 
@@ -14,6 +45,9 @@ def momentum_indicator(df):
     df['SQZ_ON'] = squeeze_result['SQZ_ON']
     df['SQZ_OFF'] = squeeze_result['SQZ_OFF']
 
+    # VWAP 계산
+    df = calculate_vwap(df, period_days=100)
+
     # EMA 200 계산
     df['EMA_200'] = ta.ema(df['close'], length=200)
 
@@ -22,7 +56,7 @@ def momentum_indicator(df):
         lambda row: 'black' if row['SQZ_ON'] == 1 else ('red' if row['SQZ_OFF'] == 1 else 'blue'), axis=1
     )
 
-
+    print(df)
 
     # ✅ 매수 신호 감지 (SQZ가 양수 전환 & 변동성 OFF에서 ON으로 변경)
     df['BuySignal'] = (df['SQZ'] > 0) & (df['VolatilityColor'].shift(1) == 'black') & (df['VolatilityColor'] == 'red') & (df['close']>df['EMA_200'])
@@ -38,6 +72,7 @@ def momentum_indicator(df):
     # 가격 그래프 및 EMA 200 추가
     axes[0].plot(df.index, df['close'], label='Close Price', marker='o', linestyle='-', color='black', linewidth=0.1, markersize=1)
     axes[0].plot(df.index, df['EMA_200'], label='EMA 200', color='green', linewidth=1.5)  # EMA 200 추가
+    axes[0].plot(df.index, df['VWAP_100'], label='VWAP', color='blue', linewidth=1.5, linestyle='dashed')  # VWAP 추가
     axes[0].fill_between(df.index, df['low'], df['high'], color='gray', alpha=0.3, label='High-Low Range')
     
     # ✅ 매수 신호 추가 (초록색 원으로 표시)

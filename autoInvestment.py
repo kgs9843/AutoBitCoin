@@ -5,7 +5,8 @@ import os
 import datetime
 import requests
 import pandas_ta as ta
-from momentum_indicator import momentum_indicator
+#from momentum_indicator import momentum_indicator
+from momentum_indicator2 import momentum_indicator
 from heikinAshiStoch import heikinAshiStoch
 import time
 
@@ -28,6 +29,11 @@ def send_message(msg):
 
 
 
+# # HeikinAshiStoch 함수 호출
+# BuySignal=heikinAshiStoch(df)  # df를 전달해서 모멘텀 지표와 차트를 출력
+# print(BuySignal)
+
+
 
 
 # 환경 변수 로드
@@ -39,7 +45,7 @@ secret = os.getenv("UPBIT_SECRET_KEY")
 upbit = pyupbit.Upbit(access, secret)
 
 # 업비트 차트 데이터 가져오기 
-df = pyupbit.get_ohlcv("KRW-BTC", count=1500, interval="minute240")
+df = pyupbit.get_ohlcv("KRW-BTC", count=555, interval="day")
 
 # #3시간 단위
 # df.index = pd.to_datetime(df.index)  # 인덱스가 Datetime 형식인지 확인
@@ -54,12 +60,19 @@ df = pyupbit.get_ohlcv("KRW-BTC", count=1500, interval="minute240")
 
 
 
-# HeikinAshiStoch 함수 호출
-BuySignal=heikinAshiStoch(df)  # df를 전달해서 모멘텀 지표와 차트를 출력
 
-print(BuySignal)
+
+# # HeikinAshiStoch 함수 호출
+# BuySignal=heikinAshiStoch(df)  # df를 전달해서 모멘텀 지표와 차트를 출력
+# print(BuySignal)
+
+
+
+
 
 myKRW = upbit.get_balance("KRW")
+
+send_message(f"구매 시그널 : {BuySignal}")
 
 print(myKRW)
 
@@ -112,7 +125,5 @@ print(myKRW)
 #                 except Exception as e:
 #                     send_message(f"⚠ 손절 주문 실패! 에러: {str(e)}")
 #                 break  # 손절 후 루프 종료
-  
-
-# else:
-#     send_message("❌ 5000원 이하로 거래 불가")
+#     else:
+#         send_message("❌ 5000원 이하로 거래 불가")

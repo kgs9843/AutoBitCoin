@@ -4,3 +4,4 @@ pyupbit
 pandas
 matplotlib
 git+https://github.com/twopirllc/pandas-ta
+ccxt
