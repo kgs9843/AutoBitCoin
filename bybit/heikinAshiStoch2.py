@@ -24,9 +24,9 @@ def heikinAshiStoch(df):
     df['EMA200'] = ta.ema(df['HA_Close'], length=200)
 
 
-    # NaN 값을 전값으로 채우기
-    df['HA_Close'] = df['HA_Close'].fillna(method='ffill')
-    df['EMA200'] = df['EMA200'].fillna(method='ffill')
+    # # NaN 값을 전값으로 채우기
+    # df['HA_Close'] = df['HA_Close'].fillna(method='ffill')
+    # df['EMA200'] = df['EMA200'].fillna(method='ffill')
 
     # Stochastic RSI 계산
     stoch_rsi = ta.stochrsi(df['HA_Close'], length=14) 
@@ -115,42 +115,9 @@ def heikinAshiStoch(df):
 
 
     # 'timestamp' 열에서 특정 범위에 속하는 행 선택
-    specific_rows = df[(df['timestamp'] >= '2025-02-14 7:00:00') & (df['timestamp'] <= '2025-02-14 9:30:00')]
+    #specific_rows = df[(df['timestamp'] >= '2025-02-14 7:00:00') & (df['timestamp'] <= '2025-02-14 9:30:00')]
     # HA_Open과 HA_Close 값 출력
     # print(specific_rows[['timestamp', 'HA_Open', 'HA_Close']])
+    print(df.tail(5).to_string())
 
-    print(df.tail())
-    return df['BuySignal'].iloc[-1], df['SellSignal'].iloc[-1]
-    # 그래프 시각화
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(20, 18), sharex=True)
-
-    # Heikin Ashi 캔들 차트
-    ax1.set_title('Heikin Ashi + 200 EMA')
-    ax1.plot(df.index, df['HA_Close'], label='Heikin Ashi', color='black')
-    ax1.plot(df.index, df['EMA200'], label='EMA 200', color='blue', linestyle='dashed')
-    ax1.fill_between(df.index, df['HA_Low'], df['HA_High'], color='gray', alpha=0.3, label='High-Low Range')
-
-
-     # ✅ 매수 신호 추가 (초록색 원으로 표시)
-    ax1.scatter(df.index[df['BuySignal']], df['HA_Close'][df['BuySignal']], 
-                    color='lime', label='Buy Signal', edgecolors='black', zorder=5, s=20)
-    
-      # ✅ 매도 신호 추가 (빨간색 원으로 표시)
-    ax1.scatter(df.index[df['SellCondition']], df['HA_Close'][df['SellCondition']], 
-                    color='red', label='Sell Signal', edgecolors='black', zorder=5, s=20)
-
-    ax1.legend()
-    
-
-
-    # Stochastic RSI 차트
-    ax2.set_title('Stochastic RSI')
-    ax2.plot(df.index, df['StochK'], label='%K', color='blue')
-    ax2.plot(df.index, df['StochD'], label='%D', color='orange')
-    ax2.axhline(20, linestyle='dashed', color='gray', alpha=0.5)
-    ax2.axhline(80, linestyle='dashed', color='gray', alpha=0.5)
-    ax2.legend()
-
-    plt.show()
-
-    
+    return df['BuySignal'].iloc[-2], df['SellSignal'].iloc[-2]

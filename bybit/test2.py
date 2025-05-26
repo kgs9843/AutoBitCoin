@@ -7,7 +7,6 @@ import os
 import requests
 import datetime
 
-
 # 환경 변수 로드
 load_dotenv()
 
@@ -83,16 +82,13 @@ def close_position(symbol):
         send_message(f"❌ 포지션 종료 중 오류 발생: {e}")
 
    
-
-
 #포지션 조회
 def checkPosition():
-    positions = exchange.fetch_positions()
+    positions = exchange.fetch_positions()  
     if not positions or len(positions) == 0:
         return True
     print("포지션이 있는 중")
     return False
-
 
 
 
@@ -123,7 +119,7 @@ def place_order(position, margin_percent,symbol):
         #그냥 시장가로 설정(바로바로 매수 하기 위해)
         current_price=current_price # *0.999 #현재 가격 보다 약간 낮게
     else:  # short
-        take_profit = current_price * 0.97
+        take_profit = current_price * 0.98
         stop_loss = current_price * 1.01
         side = "sell"
         current_price=current_price #*1.001
@@ -148,43 +144,60 @@ def place_order(position, margin_percent,symbol):
     #그냥 시장가 구매
     exchange.create_order("BTC/USDT:USDT", "market", side, order_size,params={
         "stopLoss": stop_loss,  # 스탑로스 (손절)
-        #"takeProfit": take_profit,  # 익절 (목표가)
+        "takeProfit": take_profit,  # 익절 (목표가)
     })
-
-    #익절가는 지정가로
-    exchange.create_order("BTC/USDT:USDT", "limit", "sell" if side == "buy" else "buy", order_size, take_profit,  params={"postOnly": True} )
-
-
 
     send_message(f"[{position.upper()}] 진입! 수량: {order_size:.6f} BTC, 가격: {current_price}")
 
 
 
 
-# Bybit API 객체 생성
-exchange = ccxt.bybit({
-    "apiKey": os.getenv("BYBIT_ACCESS_KEY"),
-    "secret": os.getenv("BYBIT_SECRET_KEY"),
-    "options": {"defaultType": "future"}  # 선물거래
-})
+# # Bybit API 객체 생성
+# exchange = ccxt.bybit({
+#     "apiKey": os.getenv("BYBIT_ACCESS_KEY"),
+#     "secret": os.getenv("BYBIT_SECRET_KEY"),
+#     "options": {"defaultType": "future"}  # 선물거래
+# })
+
+exchange = ccxt.bybit()
 
 
+# Bybit API 설정
+url = "https://api.bybit.com/v5/market/kline"
+symbol = "BTCUSDT"
+interval = "30"  # 30분봉
+limit = 200  # 최대 200개 요청 가능
 
-# 심볼과 타임프레임 설정
-symbol = "BTCUSDT"  # 원하는 거래쌍 설정
-timeframe = "2h"  # 30분봉
-limit = 400  # 180개 데이터
+# API 요청
+params = {
+    "symbol": symbol,
+    "interval": interval,
+    "limit": limit
+}
 
-# Bybit에서 캔들 데이터 가져오기
-ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=limit)
+response = requests.get(url, params=params)
+data = response.json()
 
-# 데이터프레임 변환
-df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
+# 데이터 확인
+if "result" in data and "list" in data["result"]:
+    candles = data["result"]["list"]
+
+    # DataFrame 변환 (7개 컬럼 지정)
+    df = pd.DataFrame(candles, columns=["timestamp", "open", "high", "low", "close", "volume", "turnover"])
+
+    # 데이터 타입 변환
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")  # timestamp 변환
+    df[["open", "high", "low", "close", "volume", "turnover"]] = df[["open", "high", "low", "close", "volume", "turnover"]].astype(float)
+
+    # 오래된 데이터부터 정렬
+    df = df.sort_values(by="timestamp").reset_index(drop=True)
+
+
+else:
+    print("데이터 수집 실패:", data)
 
 # 날짜 변환 (timestamp → datetime)
 df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
-
-
 
 # HeikinAshiStoch 함수 호출
 BuySignal,SellSignal=heikinAshiStoch(df)  # df를 전달해서 모멘텀
@@ -192,22 +205,21 @@ print(BuySignal,SellSignal)
 
 
 
-if(checkPosition()):
-    # 롱/숏 포지션 실행
-    if BuySignal:
-        close_position(symbol)
-        time.sleep(1)
-        place_order("long", 90,symbol)  # 롱 포지션, 증거금 80%
-    elif SellSignal:
-        close_position(symbol)
-        time.sleep(1)
-        place_order("short", 90,symbol)  # 숏 포지션, 증거금 80%
-    else:
-        close_position(symbol)
-        send_message("매매 신호 없음. 대기 중...")
-        print("매매 신호 없음. 대기 중...")
+# # BuySignal=True
 
-
+# if(checkPosition()):
+#     # 롱/숏 포지션 실행
+#     if BuySignal:
+#         close_position(symbol)
+#         time.sleep(1)
+#         place_order("long", 80,symbol)  # 롱 포지션, 증거금 80%
+#     elif SellSignal:
+#         close_position(symbol)
+#         time.sleep(1)
+#         place_order("short", 80,symbol)  # 숏 포지션, 증거금 80%
+#     else:
+#         send_message("매매 신호 없음. 대기 중...")
+#         print("매매 신호 없음. 대기 중...")
 
 
 # 잔고 조회 테스트
