@@ -20,8 +20,8 @@ API: Bybit API
 
 Bash
 
-git clone [프로젝트 저장소 URL]
-cd [프로젝트 디렉토리]
+git clone https://github.com/kgs9843/AutoBitCoin.git
+cd bybit
 가상환경 설정 및 라이브러리 설치:
 
 Bash
